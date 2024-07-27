@@ -1,0 +1,172 @@
+import java.util.HashSet;
+import java.util.Set;
+
+// Enum for directions
+enum Direction {
+    N, E, S, W;
+
+    private static Direction[] vals = values();
+
+    public Direction left() {
+        return vals[(this.ordinal() + 3) % 4];
+    }
+
+    public Direction right() {
+        return vals[(this.ordinal() + 1) % 4];
+    }
+}
+
+// Interface for commands
+interface Command {
+    void execute(Rover rover);
+}
+
+class MoveCommand implements Command {
+    public void execute(Rover rover) {
+        rover.move();
+    }
+}
+
+class TurnLeftCommand implements Command {
+    public void execute(Rover rover) {
+        rover.turnLeft();
+    }
+}
+
+class TurnRightCommand implements Command {
+    public void execute(Rover rover) {
+        rover.turnRight();
+    }
+}
+
+// Rover class
+class Rover {
+    private int x, y;
+    private Direction direction;
+    private Grid grid;
+
+    public Rover(int x, int y, Direction direction, Grid grid) {
+        this.x = x;
+        this.y = y;
+        this.direction = direction;
+        this.grid = grid;
+    }
+
+    public void move() {
+        int newX = x, newY = y;
+        switch (direction) {
+            case N -> newY += 1;
+            case E -> newX += 1;
+            case S -> newY -= 1;
+            case W -> newX -= 1;
+        }
+
+        if (grid.isValidMove(newX, newY)) {
+            x = newX;
+            y = newY;
+        }
+    }
+
+    public void turnLeft() {
+        direction = direction.left();
+    }
+
+    public void turnRight() {
+        direction = direction.right();
+    }
+
+    public String getStatus() {
+        return String.format("Rover is at (%d, %d) facing %s.", x, y, direction);
+    }
+
+    public String getPosition() {
+        return String.format("(%d, %d, %s)", x, y, direction);
+    }
+}
+
+// Component class for the grid
+abstract class GridComponent {
+    public void add(GridComponent component) {
+        throw new UnsupportedOperationException();
+    }
+
+    public boolean isValidMove(int x, int y) {
+        throw new UnsupportedOperationException();
+    }
+}
+
+// Composite class for the grid
+class Grid extends GridComponent {
+    private int width, height;
+    private Set<GridComponent> components = new HashSet<>();
+
+    public Grid(int width, int height) {
+        this.width = width;
+        this.height = height;
+    }
+
+    @Override
+    public void add(GridComponent component) {
+        components.add(component);
+    }
+
+    @Override
+    public boolean isValidMove(int x, int y) {
+        if (x < 0 || x >= width || y < 0 || y >= height) {
+            return false;
+        }
+        for (GridComponent component : components) {
+            if (!component.isValidMove(x, y)) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
+// Leaf class for obstacles
+class Obstacle extends GridComponent {
+    private int x, y;
+
+    public Obstacle(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    @Override
+    public boolean isValidMove(int x, int y) {
+        return !(this.x == x && this.y == y);
+    }
+}
+
+// Main class to run the simulation
+public class MarsRoverSimulation {
+    public static void main(String[] args) {
+        // Define grid and obstacles
+        Grid grid = new Grid(10, 10);
+        grid.add(new Obstacle(2, 2));
+        grid.add(new Obstacle(3, 5));
+
+        // Initialize the Rover
+        Rover rover = new Rover(0, 0, Direction.N, grid);
+
+        // Define commands
+        Command[] commands = {
+                new MoveCommand(),
+                new MoveCommand(),
+                new TurnRightCommand(),
+                new MoveCommand(),
+                new TurnLeftCommand(),
+                new MoveCommand()
+        };
+
+        // Execute commands
+        for (Command command : commands) {
+            command.execute(rover);
+        }
+
+        // Print final status
+        System.out.println(rover.getStatus());
+        System.out.println("Final Position: " + rover.getPosition());
+    }
+}
